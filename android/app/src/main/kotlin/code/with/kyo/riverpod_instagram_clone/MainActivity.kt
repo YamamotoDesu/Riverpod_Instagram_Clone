@@ -1,0 +1,6 @@
+package code.with.kyo.riverpod_instagram_clone
+
+import io.flutter.embedding.android.FlutterActivity
+
+class MainActivity: FlutterActivity() {
+}
