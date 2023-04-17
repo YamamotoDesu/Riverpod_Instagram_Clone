@@ -7,6 +7,8 @@ import 'package:riverpod_instagram_clone/state/auth/constants/constants.dart';
 import '../../posts/typedefs/user_id.dart';
 
 class Authenticator {
+  const Authenticator();
+
   User? get currentUser => FirebaseAuth.instance.currentUser;
   UserId? get userID => currentUser?.uid;
   bool get isAlreadyLoggedIn => userID != null;
