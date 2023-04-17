@@ -19,6 +19,20 @@ FB Dialog| FB Sign In |
 ### Home Page
 <img width="300" alt="スクリーンショット 2023-04-17 16 34 47" src="https://user-images.githubusercontent.com/47273077/232416287-7fbc3688-1170-43f0-bea9-1aad890d8395.png">
 
+
+### Firestore Setup
+```
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{collectionName}/{document=**} {
+      allow read, update: if request.auth != null;
+      allow create: if request.auth != null;
+      allow delete: if request.auth != null && ((collectionName == "likes" || collectionName == "comments"|| collectionName == "posts"|| collectionName == "users") || request.auth.uid == resource.data.uid);
+    }
+  }
+```
+
 lib/main.dart
 ```dart
 import 'package:flutter/material.dart';
