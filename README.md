@@ -587,3 +587,46 @@ lib/main.dart
                 );
 ```
 
+### Loading Screen with Provider
+
+<img width="300" alt="スクリーンショット 2023-04-18 11 40 11" src="https://user-images.githubusercontent.com/47273077/232662540-f89e407e-2950-4648-9946-3a35a647d352.gif">
+
+lib/main.dart
+```dart
+      home: Consumer(
+        builder: (context, ref, child) {
+          ref.listen<bool>(
+            isLoadingProvider,
+            (_, isLoading) {
+              if (isLoading) {
+                LoadingScreen.instance().show(
+                  context: context,
+                );
+              } else {
+                LoadingScreen.instance().hide();
+              }
+            },
+          );
+
+          final isLoggedIn = ref.watch(isLoggedInProvider);
+          isLoggedIn.log();
+          if (isLoggedIn) {
+            return const MainView();
+          } else {
+            return const LoginView();
+          }
+        },
+```
+
+lib/state/auth/providers/is_logged_in_provider.dart
+```dart
+import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:riverpod_instagram_clone/state/auth/providers/auth_state_provider.dart';
+
+import '../../../models/auth_result.dart';
+
+final isLoggedInProvider = Provider<bool>((ref){
+  final authProvider = ref.watch(authStateProvider);
+  return authProvider.result == AuthResult.success;
+});
+```
