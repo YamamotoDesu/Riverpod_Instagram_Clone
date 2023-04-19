@@ -437,6 +437,85 @@ class UserInfoPayload extends MapView<String, String> {
 ### Loading Screen
 <img width="300" alt="スクリーンショット 2023-04-18 11 40 11" src="https://user-images.githubusercontent.com/47273077/232656466-c873da63-7a8f-4845-98fe-55cf085b7505.png">
 
+lib/views/login/login_view.dart
+```dart
+import 'package:flutter/material.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:riverpod_instagram_clone/state/auth/providers/auth_state_provider.dart';
+import 'package:riverpod_instagram_clone/views/constants/app_colors.dart';
+import 'package:riverpod_instagram_clone/views/login/divider_with_margin.dart';
+import 'package:riverpod_instagram_clone/views/login/facebook_button.dart';
+import 'package:riverpod_instagram_clone/views/login/google_button.dart';
+import 'package:riverpod_instagram_clone/views/login/login_view_signup_link.dart';
+
+import '../constants/strings.dart';
+
+class LoginView extends ConsumerWidget {
+  const LoginView({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text(
+          Strings.appName,
+        ),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const SizedBox(
+                height: 40.0,
+              ),
+              Text(
+                Strings.welcomeToAppName,
+                style: Theme.of(context).textTheme.displaySmall,
+              ),
+              const DividerWithMargins(),
+              Text(
+                Strings.logIntoYourAccount,
+                style: Theme.of(context).textTheme.subtitle1?.copyWith(
+                      height: 1.5,
+                    ),
+              ),
+              const SizedBox(
+                height: 20.0,
+              ),
+              TextButton(
+                style: TextButton.styleFrom(
+                  backgroundColor: AppColors.loginButtonColor,
+                  foregroundColor: AppColors.loginButtonTextColor,
+                ),
+                onPressed:
+                    ref.watch(authStateProvider.notifier).loginWithFacebook,
+                child: const FacebookButton(),
+              ),
+              const SizedBox(
+                height: 20.0,
+              ),
+              TextButton(
+                style: TextButton.styleFrom(
+                  backgroundColor: AppColors.loginButtonColor,
+                  foregroundColor: AppColors.loginButtonTextColor,
+                ),
+                onPressed:
+                    ref.watch(authStateProvider.notifier).loginWithGoogle,
+                child: const GoogleButton(),
+              ),
+              const DividerWithMargins(),
+              const LoginViewSignupLink(),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+```
+
 lib/views/components/loading/loading_screen_controller.dart
 ```dart
 import 'package:flutter/foundation.dart' show immutable;
@@ -630,3 +709,152 @@ final isLoggedInProvider = Provider<bool>((ref){
   return authProvider.result == AuthResult.success;
 });
 ```
+
+### Login Screen
+<img width="300" alt="スクリーンショット 2023-04-19 9 37 52" src="https://user-images.githubusercontent.com/47273077/232936387-f7efa43c-02a7-44ae-ac04-9a6a139e4b0a.png">
+
+lib/views/login/divider_with_margin.dart
+```dart
+import 'package:flutter/material.dart';
+
+class DividerWithMargins extends StatelessWidget {
+  const DividerWithMargins({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: const [
+        SizedBox(
+          height: 20.0,
+        ),
+        Divider(),
+        SizedBox(
+          height: 20.0,
+        ),
+      ],
+    );
+  }
+}
+```
+
+lib/views/login/facebook_button.dart
+```dart
+import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:riverpod_instagram_clone/views/constants/app_colors.dart';
+import 'package:riverpod_instagram_clone/views/constants/strings.dart';
+
+class FacebookButton extends StatelessWidget {
+  const FacebookButton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 44.0,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          FaIcon(
+            FontAwesomeIcons.facebook,
+            color: AppColors.facebookColor,
+          ),
+          const SizedBox(
+            width: 10.0,
+          ),
+          const Text(
+            Strings.facebook,
+          )
+        ],
+      ),
+    );
+  }
+}
+```
+
+lib/views/login/google_button.dart
+```dart
+import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:riverpod_instagram_clone/views/constants/app_colors.dart';
+import 'package:riverpod_instagram_clone/views/constants/strings.dart';
+
+class GoogleButton extends StatelessWidget {
+  const GoogleButton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 44.0,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          FaIcon(
+            FontAwesomeIcons.google,
+            color: AppColors.googleColor,
+          ),
+          const SizedBox(
+            width: 10.0,
+          ),
+          const Text(
+            Strings.google,
+          )
+        ],
+      ),
+    );
+  }
+}
+```
+
+lib/views/login/login_view_signup_link.dart
+```dart
+import 'package:flutter/material.dart';
+import 'package:riverpod_instagram_clone/views/components/rich_text/base_text.dart';
+import 'package:riverpod_instagram_clone/views/components/rich_text/rich_text_widget.dart';
+import 'package:riverpod_instagram_clone/views/constants/strings.dart';
+import 'package:url_launcher/url_launcher.dart';
+
+class LoginViewSignupLink extends StatelessWidget {
+  const LoginViewSignupLink({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return RichTextWidget(
+      styleForAll: Theme.of(context).textTheme.subtitle1?.copyWith(
+            height: 1.5,
+          ),
+      texts: [
+        BaseText.plain(
+          text: Strings.dontHaveAnAccount,
+        ),
+        BaseText.plain(
+          text: Strings.signUpOn,
+        ),
+        BaseText.link(
+          text: Strings.facebook,
+          onTapped: () {
+            launchUrl(
+              Uri.parse(
+                Strings.facebookSignupUrl,
+              ),
+            );
+          },
+        ),
+        BaseText.plain(
+          text: Strings.orCreateAnAccountOn,
+        ),
+        BaseText.link(
+          text: Strings.google,
+          onTapped: () {
+            launchUrl(
+              Uri.parse(
+                Strings.googleSignupUrl,
+              ),
+            );
+          },
+        ),
+      ],
+    );
+  }
+}
+```
+
