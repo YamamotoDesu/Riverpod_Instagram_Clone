@@ -858,3 +858,132 @@ class LoginViewSignupLink extends StatelessWidget {
 }
 ```
 
+lib/views/components/rich_text/base_text.dart
+```dart
+// ignore_for_file: public_member_api_docs, sort_constructors_first
+
+import 'package:flutter/foundation.dart' show immutable, VoidCallback;
+import 'package:flutter/material.dart' show TextStyle, Colors, TextDecoration;
+import 'package:riverpod_instagram_clone/views/components/rich_text/link_text.dart';
+
+@immutable
+class BaseText {
+  final String text;
+  final TextStyle? style;
+
+  const BaseText({
+    required this.text,
+    this.style,
+  });
+
+  factory BaseText.plain({
+    required String text,
+    TextStyle? style = const TextStyle(),
+  }) =>
+      BaseText(
+        text: text,
+        style: style,
+      );
+
+  
+  factory BaseText.link({
+    required String text,
+    required VoidCallback onTapped,
+    TextStyle? style = const TextStyle(
+      color: Colors.blue,
+      decoration: TextDecoration.underline,
+    ),
+  }) =>
+      LinkText(
+        text: text,
+        onTapped: onTapped,
+        style: style,
+      );
+}
+```
+
+lib/views/components/rich_text/link_text.dart
+```dart
+import 'package:flutter/foundation.dart' show immutable, VoidCallback;
+import 'package:riverpod_instagram_clone/views/components/rich_text/base_text.dart';
+
+@immutable
+class LinkText extends BaseText {
+  final VoidCallback onTapped;
+  const LinkText({
+    required super.text,
+    required this.onTapped,
+    super.style,
+  });
+}
+```
+
+lib/views/components/rich_text/rich_text_widget.dart
+```dart
+import 'package:flutter/gestures.dart';
+import 'package:flutter/material.dart';
+import 'package:riverpod_instagram_clone/views/components/rich_text/link_text.dart';
+
+import 'base_text.dart';
+
+class RichTextWidget extends StatelessWidget {
+  final Iterable<BaseText> texts;
+  final TextStyle? styleForAll;
+
+  const RichTextWidget({
+    super.key,
+    required this.texts,
+    this.styleForAll,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return RichText(
+      text: TextSpan(
+        children: texts.map((baseText) {
+          if (baseText is LinkText) {
+            return TextSpan(
+              text: baseText.text,
+              style: styleForAll?.merge(baseText.style),
+              recognizer: TapGestureRecognizer()..onTap = baseText.onTapped,
+            );
+          } else {
+            return TextSpan(
+              text: baseText.text,
+              style: styleForAll?.merge(baseText.style),
+            );
+          }
+        }).toList(),
+      ),
+    );
+  }
+}
+```
+
+lib/extensions/string/as_html_color_to_color.dart
+```dart
+import 'package:flutter/material.dart';
+import 'package:riverpod_instagram_clone/extensions/string/remove_all.dart';
+
+extension AsHtmlColorToColor on String {
+  Color htmlColorToColor() => Color(
+        int.parse(
+          removeAll(['0x', '#']).padLeft(8, 'ff'),
+          radix: 16,
+        ),
+      );
+}
+```
+
+lib/extensions/string/remove_all.dart
+```dart
+extension RemoveAll on String {
+  String removeAll(Iterable<String> values) => values.fold(
+        this,
+        (result, value) => result.replaceAll(
+          value,
+          '',
+        ),
+      );
+}
+```
