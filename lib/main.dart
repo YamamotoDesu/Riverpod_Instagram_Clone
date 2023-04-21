@@ -10,6 +10,7 @@ import 'firebase_options.dart';
 
 import 'dart:developer' as devtools show log;
 
+
 extension Log on Object {
   void log() => devtools.log(toString());
 }
@@ -83,18 +84,16 @@ class MainView extends StatelessWidget {
         title: const Text('Main Page'),
       ),
       body: Consumer(
-        builder: (context, ref, child) => Column(
-          children: [
-            TextButton(
+        builder: (context, ref, child) {
+          return TextButton(
               onPressed: () async {
                 await ref.read(authStateProvider.notifier).logOut();
               },
               child: const Text(
                 'Log Out',
               ),
-            ),
-          ],
-        ),
+            );
+        }
       ),
     );
   }
