@@ -987,3 +987,114 @@ extension RemoveAll on String {
       );
 }
 ```
+
+## Lottie Animation
+
+lib/views/components/animations/models/lottie_animation.dart
+```dart
+enum LottieAnimation {
+  dataNotFound(name: "data_not_found"),
+  empty(name: "empty"),
+  loading(name: "loading"),
+  error(name: "error"),
+  smallError(name: "small_error");
+
+  final String name;
+  const LottieAnimation({
+    required this.name,
+  });
+}
+```
+
+lib/views/components/animations/lottie_animation_view.dart
+```dart
+
+import 'package:flutter/material.dart';
+import 'package:lottie/lottie.dart';
+import 'package:riverpod_instagram_clone/views/components/animations/models/lottie_animation.dart';
+
+class LottieAnimationView extends StatelessWidget {
+  final LottieAnimation animation;
+  final bool repeat;
+  final bool reverse;
+
+  const LottieAnimationView({
+    super.key,
+    required this.animation,
+    this.repeat = true,
+    this.reverse = false,
+  });
+
+  @override
+  Widget build(BuildContext context) => Lottie.asset(
+        animation.fullPath,
+        reverse: reverse,
+        repeat: repeat,
+      );
+}
+
+extension GetFullPath on LottieAnimation {
+  String get fullPath => 'assets/animations/$name.json';
+}
+```
+
+lib/views/components/animations/data_not_found_animation.dart
+```dart
+import 'package:riverpod_instagram_clone/views/components/animations/lottie_animation_view.dart';
+import 'package:riverpod_instagram_clone/views/components/animations/models/lottie_animation.dart';
+
+class DataNotFoundAnimationView extends LottieAnimationView {
+  const DataNotFoundAnimationView({super.key})
+      : super(
+          animation: LottieAnimation.dataNotFound,
+        );
+}
+```
+
+lib/views/components/animations/empty_content_with_text.dart
+```dart
+import 'package:flutter/material.dart';
+import 'package:riverpod_instagram_clone/views/components/animations/empty_contents_animation.dart';
+
+class EmptyContentWithTextAnimationView extends StatelessWidget {
+  final String text;
+  const EmptyContentWithTextAnimationView({
+    super.key,
+    required this.text,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(32.0),
+            child: Text(
+              text,
+              style: Theme.of(context)
+                  .textTheme
+                  .titleLarge
+                  ?.copyWith(color: Colors.white54),
+            ),
+          ),
+          const EmptyContentsAnimationView(),
+        ],
+      ),
+    );
+  }
+}
+```
+
+lib/views/components/animations/empty_contents_animation.dart
+```dart
+import 'package:riverpod_instagram_clone/views/components/animations/lottie_animation_view.dart';
+import 'package:riverpod_instagram_clone/views/components/animations/models/lottie_animation.dart';
+
+class EmptyContentsAnimationView extends LottieAnimationView {
+  const EmptyContentsAnimationView({super.key})
+      : super(
+          animation: LottieAnimation.empty,
+        );
+}
+```
