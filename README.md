@@ -1098,3 +1098,396 @@ class EmptyContentsAnimationView extends LottieAnimationView {
         );
 }
 ```
+
+## Configure Firestore
+
+```
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{collectionName}/{document=**} {
+      allow read, update: if request.auth != null;
+      allow create: if request.auth != null;
+      allow delete: if request.auth != null && ((collectionName == "likes" || collectionName == "comments"|| collectionName == "posts"|| collectionName == "users") || request.auth.uid == resource.data.uid);
+    }
+  }
+}
+```
+
+lib/state/image_upload/models/file_type.dart
+```dart
+enum FileType {
+  image,
+  viedeo,
+}
+```
+
+lib/state/posts/models/post_key.dart
+```dart
+import 'package:flutter/foundation.dart' show immutable;
+
+@immutable 
+class PostKey {
+    static const userId = 'uid';
+    static const message = 'message';
+    static const createdAt = 'created_at';
+    static const thumbnailUrl = 'thumbnail_url';
+    static const fileUrl = 'file_url';
+    static const fileType = 'file_type';
+    static const fileName = 'file_name';
+    static const aspectRatio = 'aspect_ratio';
+    static const postSettings = 'post_settings';
+    static const thumbnailStorageId = 'thumbnail_storage_id';
+    static const originalStorageId = 'original_storage_id';
+
+    const PostKey._();
+}
+```
+
+lib/state/posts/models/post.dart
+```dart
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart' show immutable;
+import 'package:riverpod_instagram_clone/state/image_upload/models/file_type.dart';
+import 'package:riverpod_instagram_clone/state/post_settings/models/post_setting.dart';
+import 'package:riverpod_instagram_clone/state/posts/models/post_key.dart';
+
+@immutable
+class Post {
+  final String postId;
+  final String userId;
+  final String message;
+  final DateTime createdAt;
+  final String thumbnailUrl;
+  final String fileUrl;
+  final FileType fileType;
+  final String fileName;
+  final double aspectRatio;
+  final String thumbnailStorageId;
+  final String originalStorageId;
+  final Map<PostSetting, bool> postSettings;
+
+  Post({
+    required this.postId,
+    required Map<String, dynamic> json,
+  })  : userId = json[PostKey.userId],
+        message = json[PostKey.message],
+        createdAt = (json[PostKey.createdAt] as Timestamp).toDate(),
+        thumbnailUrl = json[PostKey.thumbnailUrl],
+        fileUrl = json[PostKey.fileUrl],
+        fileType = FileType.values.firstWhere(
+          (fileType) => fileType.name == json[PostKey.fileType],
+          orElse: () => FileType.image,
+        ),
+        fileName = json[PostKey.fileName],
+        aspectRatio = json[PostKey.aspectRatio],
+        thumbnailStorageId = json[PostKey.thumbnailStorageId],
+        originalStorageId = json[PostKey.originalStorageId],
+        postSettings = {
+          for (final entry in json[PostKey.postSettings].entries)
+            PostSetting.values.firstWhere(
+              (element) => element.storageKey == entry.key,
+            ): entry.value,
+        };
+
+  bool get allowLilkes => postSettings[PostSetting.allowLikes] ?? false;
+  bool get allowComments => postSettings[PostSetting.allowLikes] ?? false;
+}
+```
+
+lib/state/post_settings/models/post_setting.dart
+```dart
+import 'package:riverpod_instagram_clone/state/post_settings/constants/constants.dart';
+
+enum PostSetting {
+  allowLikes(
+    title: Constants.allowLikesTitle,
+    description: Constants.allowLikesDescription,
+    storageKey: Constants.allowLikesStorageKey,
+  ),
+
+  allowComments(
+    title: Constants.allowCommentsTitle,
+    description: Constants.allowCommentsDescription,
+    storageKey: Constants.allowCommentsStorageKey,
+  );
+
+  final String title;
+  final String description;
+  final String storageKey;
+  const PostSetting({
+    required this.title,
+    required this.description,
+    required this.storageKey,
+  });
+}
+
+```
+
+lib/views/tabs/user_posts/user_posts_view.dart
+```dart
+import 'package:flutter/material.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:riverpod_instagram_clone/state/posts/providers/user_posts_provider.dart';
+import 'package:riverpod_instagram_clone/views/components/animations/empty_content_with_text.dart';
+import 'package:riverpod_instagram_clone/views/components/animations/error_contents_animation.dart';
+import 'package:riverpod_instagram_clone/views/components/animations/loding_contents_animation.dart';
+import 'package:riverpod_instagram_clone/views/components/post/posts_grid_view.dart';
+
+import '../../constants/strings.dart';
+
+class UserPostsView extends ConsumerWidget {
+  const UserPostsView({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final posts = ref.watch(userPostsProvider);
+
+    return RefreshIndicator(
+      onRefresh: () {
+        ref.refresh(userPostsProvider);
+        return Future.delayed(const Duration(seconds: 1));
+      },
+      child: posts.when(
+        data: (posts) {
+          if (posts.isEmpty) {
+            return const EmptyContentWithTextAnimationView(
+              text: Strings.youHaveNoPosts,
+            );
+          } else {
+            return PostsGridView(
+              posts: posts,
+            );
+          }
+        },
+        error: (error, stackTrace) {
+          return const ErrorContentsAnimationView();
+        },
+        loading: () {
+          return const LoadingContentsAnimationView();
+        },
+      ),
+    );
+  }
+}
+```
+
+## Inplements Main View
+
+<img width="300" alt="スクリーンショット 2023-04-23 8 36 00" src="https://user-images.githubusercontent.com/47273077/233811934-a48deae7-b474-47ad-a150-b675813e47ac.png">
+
+```dart
+import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:riverpod_instagram_clone/state/auth/providers/auth_state_provider.dart';
+import 'package:riverpod_instagram_clone/views/components/dialogs/alert_dialog_model.dart';
+import 'package:riverpod_instagram_clone/views/components/dialogs/logout_dialog.dart';
+import 'package:riverpod_instagram_clone/views/constants/strings.dart';
+import 'package:riverpod_instagram_clone/views/tabs/user_posts/user_posts_view.dart';
+
+class MainView extends ConsumerStatefulWidget {
+  const MainView({super.key});
+
+  @override
+  ConsumerState<ConsumerStatefulWidget> createState() => _MainViewState();
+}
+
+class _MainViewState extends ConsumerState<MainView> {
+  @override
+  Widget build(BuildContext context) {
+    return DefaultTabController(
+      length: 3,
+      child: Scaffold(
+          appBar: AppBar(
+            title: const Text(
+              Strings.appName,
+            ),
+            actions: [
+              IconButton(
+                icon: const FaIcon(
+                  FontAwesomeIcons.film,
+                ),
+                onPressed: () async {},
+              ),
+              IconButton(
+                icon: const Icon(
+                  Icons.add_photo_alternate_outlined,
+                ),
+                onPressed: () async {},
+              ),
+              IconButton(
+                icon: const Icon(
+                  Icons.logout,
+                ),
+                onPressed: () async {
+                  final shouldLogOut = await const LogoutDialog()
+                      .present(context)
+                      .then((value) => value ?? false);
+                  if (shouldLogOut) {
+                    await ref.read(authStateProvider.notifier).logOut();
+                  }
+                },
+              ),
+            ],
+            bottom: const TabBar(
+              tabs: [
+                Tab(
+                  icon: Icon(
+                    Icons.person,
+                  ),
+                ),
+                Tab(
+                  icon: Icon(
+                    Icons.search,
+                  ),
+                ),
+                Tab(
+                  icon: Icon(
+                    Icons.home,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          body: const TabBarView(
+            children: [
+              UserPostsView(),
+              UserPostsView(),
+              UserPostsView(),
+            ],
+          )),
+    );
+  }
+}
+```
+
+lib/views/tabs/user_posts/user_posts_view.dart
+```dart
+import 'package:flutter/material.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:riverpod_instagram_clone/state/posts/providers/user_posts_provider.dart';
+import 'package:riverpod_instagram_clone/views/components/animations/empty_content_with_text.dart';
+import 'package:riverpod_instagram_clone/views/components/animations/error_contents_animation.dart';
+import 'package:riverpod_instagram_clone/views/components/animations/loding_contents_animation.dart';
+import 'package:riverpod_instagram_clone/views/components/post/posts_grid_view.dart';
+
+import '../../constants/strings.dart';
+
+class UserPostsView extends ConsumerWidget {
+  const UserPostsView({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final posts = ref.watch(userPostsProvider);
+
+    return RefreshIndicator(
+      onRefresh: () {
+        ref.refresh(userPostsProvider);
+        return Future.delayed(const Duration(seconds: 1));
+      },
+      child: posts.when(
+        data: (posts) {
+          if (posts.isEmpty) {
+            return const EmptyContentWithTextAnimationView(
+              text: Strings.youHaveNoPosts,
+            );
+          } else {
+            return PostsGridView(
+              posts: posts,
+            );
+          }
+        },
+        error: (error, stackTrace) {
+          return const ErrorContentsAnimationView();
+        },
+        loading: () {
+          return const LoadingContentsAnimationView();
+        },
+      ),
+    );
+  }
+}
+```
+
+## Show Alert Dialog
+
+<img width="300" alt="スクリーンショット 2023-04-23 8 36 32" src="https://user-images.githubusercontent.com/47273077/233811944-e19b847b-ef75-4adb-8523-94e2d83a9844.png">
+
+lib/views/components/dialogs/alert_dialog_model.dart
+```dart
+import 'package:flutter/material.dart';
+
+@immutable
+class AlertDialogModel<T> {
+  final String title;
+  final String message;
+  final Map<String, T> buttons;
+
+  const AlertDialogModel({
+    required this.title,
+    required this.message,
+    required this.buttons,
+  });
+}
+
+extension Present<T> on AlertDialogModel<T> {
+  Future<T?> present(BuildContext context) {
+    return showDialog<T>(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            title: Text(title),
+            content: Text(message),
+            actions: buttons.entries.map((entry) {
+              return TextButton(
+                child: Text(
+                  entry.key,
+                ),
+                onPressed: () => Navigator.of(context).pop(
+                  entry.value,
+                ),
+              );
+            }).toList(),
+          );
+        });
+  }
+}
+```
+
+lib/views/components/dialogs/logout_dialog.dart
+```dart
+import 'package:flutter/foundation.dart' show immutable;
+import 'package:riverpod_instagram_clone/views/components/constants/stings.dart';
+import 'package:riverpod_instagram_clone/views/components/dialogs/alert_dialog_model.dart';
+
+@immutable
+class LogoutDialog extends AlertDialogModel<bool> {
+  const LogoutDialog()
+      : super(
+          title: Strings.logOut,
+          message: Strings.areYouSureThatYouWantToLogOutOfTheApp,
+          buttons: const {
+            Strings.cancel: false,
+            Strings.logOut: true,
+          },
+        );
+}
+```
+
+lib/views/main/main_view.dart
+```dart
+               IconButton(
+                icon: const Icon(
+                  Icons.logout,
+                ),
+                onPressed: () async {
+                  final shouldLogOut = await const LogoutDialog()
+                      .present(context)
+                      .then((value) => value ?? false);
+                  if (shouldLogOut) {
+                    await ref.read(authStateProvider.notifier).logOut();
+                  }
+                },
+              ),
+ ```
