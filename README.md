@@ -1490,4 +1490,303 @@ lib/views/main/main_view.dart
                   }
                 },
               ),
- ```
+```
+ 
+## Upload Image 
+
+<img width="300" alt="スクリーンショット 2023-04-24 11 26 49" src="https://user-images.githubusercontent.com/47273077/233886126-2b7b0b22-734b-48c8-91a2-9dcd84e34cd3.gif">
+
+<img width="300" alt="スクリーンショット 2023-04-24 11 29 25" src="https://user-images.githubusercontent.com/47273077/233886312-55556a22-95dc-420e-900e-a93b2f11ba3a.png">
+
+lib/views/main/main_view.dart
+```dart
+            actions: [
+              IconButton(
+                icon: const FaIcon(
+                  FontAwesomeIcons.film,
+                ),
+                onPressed: () async {
+                  final videoFile =
+                      await ImagePickerHelper.pickVideoFromGallery();
+
+                  if (videoFile == null) {
+                    return;
+                  }
+
+                  ref.refresh(postSettingsProvider);
+
+                  if (!mounted) {
+                    return;
+                  }
+
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => CreateNewPostView(
+                        fileToPost: videoFile,
+                        fileType: FileType.video,
+                      ),
+                    ),
+                  );
+                },
+              ),
+              IconButton(
+                icon: const Icon(
+                  Icons.add_photo_alternate_outlined,
+                ),
+                onPressed: () async {
+                  final imageFile =
+                      await ImagePickerHelper.pickImageFromGallery();
+
+                  if (imageFile == null) {
+                    return;
+                  }
+
+                  ref.refresh(postSettingsProvider);
+
+                  if (!mounted) {
+                    return;
+                  }
+
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => CreateNewPostView(
+                        fileToPost: imageFile,
+                        fileType: FileType.image,
+                      ),
+                    ),
+                  );
+                },
+              ),
+```
+
+lib/views/create_new_post/create_new_post_view.dart
+```dart
+import 'dart:io';
+
+import 'package:flutter/material.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:riverpod_instagram_clone/state/auth/providers/user_id_provider.dart';
+import 'package:riverpod_instagram_clone/state/image_upload/models/file_type.dart';
+import 'package:riverpod_instagram_clone/state/image_upload/models/thumbnail_request.dart';
+import 'package:riverpod_instagram_clone/state/image_upload/provider/image_uploader_provider.dart';
+import 'package:riverpod_instagram_clone/state/post_settings/models/post_setting.dart';
+import 'package:riverpod_instagram_clone/state/post_settings/providers/post_settings_provider.dart';
+import 'package:riverpod_instagram_clone/views/components/file_thumbnail_view.dart';
+import 'package:riverpod_instagram_clone/views/constants/strings.dart';
+
+class CreateNewPostView extends StatefulHookConsumerWidget {
+  final File fileToPost;
+  final FileType fileType;
+  const CreateNewPostView({
+    required this.fileToPost,
+    required this.fileType,
+    super.key,
+  });
+
+  @override
+  ConsumerState<ConsumerStatefulWidget> createState() =>
+      _CreateNewPostViewState();
+}
+
+class _CreateNewPostViewState extends ConsumerState<CreateNewPostView> {
+  @override
+  Widget build(BuildContext context) {
+    final thumbnailRequest = ThumnnailRequest(
+      file: widget.fileToPost,
+      fileType: widget.fileType,
+    );
+
+    final postSettings = ref.watch(postSettingsProvider);
+    final postController = useTextEditingController();
+    final isPostButtonEnabled = useState(false);
+    useEffect(() {
+      void listner() {
+        isPostButtonEnabled.value = postController.text.isNotEmpty;
+      }
+
+      postController.addListener(listner);
+
+      return () {
+        postController.removeListener(listner);
+      };
+    }, [postController]);
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text(
+          Strings.createNewPost,
+        ),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.send),
+            onPressed: isPostButtonEnabled.value
+                ? () async {
+                    final userId = ref.read(
+                      userIdProvider,
+                    );
+                    if (userId == null) {
+                      return;
+                    }
+                    final message = postController.text;
+                    final isUploaded =
+                        await ref.read(imageUploadProvider.notifier).upload(
+                              file: widget.fileToPost,
+                              fileType: widget.fileType,
+                              message: message,
+                              postSettings: postSettings,
+                              userId: userId,
+                            );
+
+                    if (isUploaded && mounted) {
+                      Navigator.of(context).pop();
+                    }
+                  }
+                : null,
+          )
+        ],
+      ),
+      body: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            FileThumbnailView(
+              thumbnailRequest: thumbnailRequest,
+            ),
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: TextField(
+                decoration: const InputDecoration(
+                  hintText: Strings.pleaseWriteYourMessageHere,
+                ),
+                autofocus: true,
+                maxLength: null,
+                controller: postController,
+              ),
+            ),
+            ...PostSetting.values.map(
+              (postSetting) => ListTile(
+                title: Text(postSetting.title),
+                subtitle: Text(postSetting.description),
+                trailing: Switch(
+                  value: postSettings[postSetting] ?? false,
+                  onChanged: (isOn) {
+                    ref.read(postSettingsProvider.notifier).setSetting(
+                          postSetting,
+                          isOn,
+                        );
+                  },
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+```
+
+lib/views/components/file_thumbnail_view.dart
+```dart
+import 'package:flutter/material.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:riverpod_instagram_clone/state/image_upload/models/thumbnail_request.dart';
+import 'package:riverpod_instagram_clone/state/image_upload/provider/thumbnail_provider.dart';
+import 'package:riverpod_instagram_clone/views/components/animations/loding_contents_animation.dart';
+import 'package:riverpod_instagram_clone/views/components/animations/small_error_animation_view.dart';
+
+class FileThumbnailView extends ConsumerWidget {
+  final ThumnnailRequest thumbnailRequest;
+
+  const FileThumbnailView({
+    required this.thumbnailRequest,
+    super.key,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final thumbnail = ref.watch(
+      thumbnailProvider(
+        thumbnailRequest,
+      ),
+    );
+
+    return thumbnail.when(
+      data: (imageWithAspectRatio) {
+        return AspectRatio(
+          aspectRatio: imageWithAspectRatio.aspectRatio,
+          child: imageWithAspectRatio.image,
+        );
+      },
+      loading: () {
+        return const LoadingContentsAnimationView();
+      },
+      error: (error, stackTrace) {
+        return const SmallErrorContentsAnimationView();
+      },
+    );
+  }
+}
+```
+
+lib/state/providers/is_loading_provider.dart
+```dart
+import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:riverpod_instagram_clone/state/auth/providers/auth_state_provider.dart';
+import 'package:riverpod_instagram_clone/state/image_upload/provider/image_uploader_provider.dart';
+
+final isLoadingProvider = Provider<bool>((ref) {
+  final authState = ref.watch(authStateProvider);
+  final isUploadingImage = ref.watch(imageUploadProvider);
+
+  return authState.isLoading;
+});
+```
+
+lib/state/post_settings/providers/post_settings_provider.dart
+```dart
+import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:riverpod_instagram_clone/state/post_settings/models/post_setting.dart';
+import 'package:riverpod_instagram_clone/state/post_settings/notifiers/post_settings_notifier.dart';
+
+final postSettingsProvider =
+    StateNotifierProvider<PostSettingNotifier, Map<PostSetting, bool>>(
+  (ref) => PostSettingNotifier(),
+);
+
+```
+
+lib/state/post_settings/notifiers/post_settings_notifier.dart
+```dart
+import 'dart:collection';
+
+import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:riverpod_instagram_clone/state/post_settings/models/post_setting.dart';
+
+class PostSettingNotifier extends StateNotifier<Map<PostSetting, bool>> {
+  PostSettingNotifier()
+      : super(
+          UnmodifiableMapView(
+            {
+              for (final setting in PostSetting.values) setting: true,
+            },
+          ),
+        );
+
+  void setSetting(
+    PostSetting setting,
+    bool value,
+  ) {
+    final existingValue = state[setting];
+    if (existingValue == null || existingValue == value) {
+      return;
+    }
+    state = Map.unmodifiable(
+      Map.from(state)..[setting] = value,
+    );
+  }
+}
+```
