@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:riverpod_instagram_clone/state/posts/models/post.dart';
 import 'package:riverpod_instagram_clone/views/components/post/post_thumbnail_view.dart';
+import 'package:riverpod_instagram_clone/views/post_comments/post_comments_view.dart';
 
 class PostsGridView extends StatelessWidget {
   final Iterable<Post> posts;
@@ -25,7 +26,6 @@ class PostsGridView extends StatelessWidget {
         return PostThumbnailView(
           post: post,
           onTapped: () {
-            
           },
         );
       },

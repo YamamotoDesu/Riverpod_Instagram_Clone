@@ -13,16 +13,14 @@ class EmptyContentWithTextAnimationView extends StatelessWidget {
     return Center(
       child: Column(
         children: [
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.all(15.0),
-              child: Text(
-                text,
-                style: Theme.of(context)
-                    .textTheme
-                    .titleLarge
-                    ?.copyWith(color: Colors.white54),
-              ),
+          Padding(
+            padding: const EdgeInsets.all(15.0),
+            child: Text(
+              text,
+              style: Theme.of(context)
+                  .textTheme
+                  .titleLarge
+                  ?.copyWith(color: Colors.white54),
             ),
           ),
           const EmptyContentsAnimationView(),

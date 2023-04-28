@@ -1,0 +1,2 @@
+
+typedef PostId = String;
