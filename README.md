@@ -1,6 +1,9 @@
 # riverpod_instagram_clone
 https://www.youtube.com/watch?v=vtGCteFYs4M&t=16725s
 
+<img width="300" alt="スクリーンショット 2023-04-24 11 26 49" src="https://user-images.githubusercontent.com/47273077/235820780-2ceef357-98e4-4661-96f7-d53cd6b8b24e.gif">
+
+
 ## Auth Impls
 
 ### Log In Page 
